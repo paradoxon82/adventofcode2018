@@ -9,7 +9,7 @@ class CoordinateChecker
       Array.new(1000) { |j| [] } 
     end
     @ids = Set.new
-    @conflicting_ids = Set.new
+    @id_conflict = Hash.new { |hash, key| hash[key] = false }
   end
 
   # #1 @ 1,3: 4x4
@@ -33,6 +33,7 @@ class CoordinateChecker
 
   def register_claim(claim)
     @ids << claim[:id]
+    @id_conflict[claim[:id]] = false
     start_x = claim[:x]
     start_y = claim[:y]
     end_x = claim[:x] + claim[:width] - 1
@@ -43,7 +44,13 @@ class CoordinateChecker
       strip[start_y..end_y].each_with_index do |entry, j|
         #puts "already at #{i}x#{j}: #{entry}" unless entry.empty?
         entry << claim[:id]
-        @conflicting_ids += entry if entry.size > 1
+        if entry.size > 1
+          entry.each do |id|
+            @id_conflict[id] = true
+          end
+        end
+
+        #@id_count[claim[:id]] = 2 if entry.size > 1
       end
     end
   end
@@ -69,14 +76,19 @@ class CoordinateChecker
     without_overlap = @ids
     @cloth.each do |strip|
       strip.each do |entry|
-        without_overlap -= entry if entry.size > 1
+        entry.each do |id|
+
+        end
       end
     end
     without_overlap.to_a
   end
 
   def ids_without_overlap2
-    (@ids - @conflicting_ids).to_a
+    id, conflict = @id_conflict.find do |id, conflict|
+      conflict == false
+    end
+    id
   end
 
 end
