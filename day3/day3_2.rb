@@ -2,6 +2,8 @@
 
 require 'set'
 
+Claim = Struct.new(:x, :y, :width, :height, :id)
+
 class CoordinateChecker
 
   def initialize()
@@ -12,38 +14,40 @@ class CoordinateChecker
     @id_conflict = Hash.new { |hash, key| hash[key] = false }
   end
 
+  def line_regex
+    @line_regex ||= /#(?<id>\d+)\D@\D(?<x>\d+),(?<y>\d+):\D(?<width>\d+)x(?<height>\d+).*/
+  end
+
   # #1 @ 1,3: 4x4
   def match_line(line)
-    /#(?<id>\d+)\D@\D(?<x>\d+),(?<y>\d+):\D(?<width>\d+)x(?<height>\d+).*/.match(line)
+    line_regex.match(line)
+  end
+
+  def build_claim(m)
+    Claim.new(m[:x].to_i, m[:y].to_i, m[:width].to_i, m[:height].to_i, m[:id].to_i)
   end
 
   def parse_line(line)
     if m = match_line(line)
-      {
-        x: m[:x].to_i,
-        y: m[:y].to_i,
-        width: m[:width].to_i,
-        height: m[:height].to_i,
-        id: m[:id]
-      }
+      build_claim(m)
     else
       nil
     end
   end
 
   def register_claim(claim)
-    @ids << claim[:id]
-    @id_conflict[claim[:id]] = false
-    start_x = claim[:x]
-    start_y = claim[:y]
-    end_x = claim[:x] + claim[:width] - 1
-    end_y = claim[:y] + claim[:height] - 1
+    @ids << claim.id
+    @id_conflict[claim.id] = false
+    start_x = claim.x
+    start_y = claim.y
+    end_x = claim.x + claim.width - 1
+    end_y = claim.y + claim.height - 1
     #puts "accessing #{start_x..end_x} and #{start_y..end_y}"
 
-    @cloth[start_x..end_x].each_with_index do |strip, i|
-      strip[start_y..end_y].each_with_index do |entry, j|
+    @cloth[start_x..end_x].each do |strip|
+      strip[start_y..end_y].each do |entry|
         #puts "already at #{i}x#{j}: #{entry}" unless entry.empty?
-        entry << claim[:id]
+        entry << claim.id
         if entry.size > 1
           entry.each do |id|
             @id_conflict[id] = true
@@ -72,17 +76,6 @@ class CoordinateChecker
     end
   end
 
-  def ids_without_overlap
-    without_overlap = @ids
-    @cloth.each do |strip|
-      strip.each do |entry|
-        entry.each do |id|
-
-        end
-      end
-    end
-    without_overlap.to_a
-  end
 
   def ids_without_overlap2
     id, conflict = @id_conflict.find do |id, conflict|
