@@ -5,11 +5,13 @@
 class Polymer
 
   def initialize(initial_sequence)
+    @verbose = false
     @initial_sequence = initial_sequence.chars
   end
 
   # reacts if the two chars are the same but different case
   def reacts?(left, right)
+    return false if left.nil? || right.nil?
     if left != right 
       # case insensitive compare
       left.casecmp(right) == 0
@@ -24,7 +26,8 @@ class Polymer
     while reacts?(sequence[starting_point-ret-1], sequence[starting_point+ret+2])
       ret += 1
     end
-    ret * 2
+    puts "retracting by #{ret} at #{starting_point}" if ret > 0 && @verbose
+    ret
   end
 
   def length_after_reaction
@@ -39,16 +42,20 @@ class Polymer
 
     count = 0
     i = 0
-    end_index = sequence.size - 1
+    end_index = sequence.size
     while i < end_index
+      puts "index #{i}, count #{count}" if @verbose
       if reacts?(sequence[i], sequence[i+1])
+        puts "reaction" if @verbose
         ret = retraction(sequence, i)
         count -= ret
         i += ret
+        i += 2 # omit comparing next one again
       else
+        puts "no reaction" if @verbose
         count += 1
+        i += 1
       end
-      i += 1
     end
     count
   end
@@ -112,6 +119,13 @@ File.open(ARGV[0]).each_line do |line|
   reactor.add_line(line.strip)
 end
 puts "result size: #{reactor.length_after_reaction}"
+
+reactor = Reactor.new
+reactor.add_line('dabAcCaCBAcCcaDA')
+puts "result size: #{reactor.length_after_reaction}"
+
+# 'dabCBAcaDA'
+
 # puts "shortest result: #{reactor.shortest_length_after_reaction}"
 
 # reactor = Reactor.new
