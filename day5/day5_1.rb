@@ -19,7 +19,9 @@ class Polymer
 
   def react(sequence)
     remainder = []
-    retrun remainder if sequence.empty?
+    # at least one reaction was done
+    found_one = false
+    retrun false if sequence.empty?
 
     skip_one = false
     sequence.each_cons(2) do |left, right|
@@ -28,6 +30,7 @@ class Polymer
         next
       end
       if reacts?(left, right)
+        found_one = true
         skip_one = true
       else
         remainder << left 
@@ -38,8 +41,9 @@ class Polymer
     unless skip_one
       remainder << sequence.last
     end
-
     sequence.replace(remainder)
+
+    found_one
   end
 
   def result
@@ -51,13 +55,35 @@ class Polymer
 end
 
 class Reactor
+  attr_reader :sequence_string, :uniqe_units
 
-  def initialize(sequence_string)
-    @sequence_string = sequence_string
+  def initialize()
+    @sequence_string = ''
   end
 
-  def result
+  def add_line(line)
+    @sequence_string.concat(line)
+  end
+
+  def result_string
     Polymer.new(@sequence_string).result
+  end
+
+  def shortest_result
+    @uniqe_units = @sequence_string.upcase.chars.uniq
+    @result_sizes = {}
+    @uniqe_units.each do |unit|
+      puts "unit: #{unit}"
+      fixed_sequence = @sequence_string.delete([unit, unit.downcase].join)
+      puts "fixed_sequence size: #{fixed_sequence.size}"
+      result = Polymer.new(fixed_sequence).result
+      @result_sizes[unit] = result.size
+      puts "result size: #{result.size}"
+    end
+
+    unit, size = @result_sizes.min_by {|unit, size| size }
+    puts "shortest without unit #{unit}"
+    size
   end
 
 end
@@ -80,9 +106,17 @@ end
 #   end
 # end
 
-reactor = Reactor.new('dabAcCaCBAcCcaDA')
-puts "input: #{reactor.sequence}, result: #{reactor.result}" 
-puts "matches: #{reactor.result == 'dabCBAcaDA'}"
+reactor = Reactor.new
+File.open(ARGV[0]).each_line do |line|
+  reactor.add_line(line.strip)
+end
+puts "result size: #{reactor.result_string.size}"
+puts "shortest result: #{reactor.shortest_result}"
+
+reactor = Reactor.new
+reactor.add_line('dabAcCaCBAcCcaDA')
+puts "input: #{reactor.sequence_string}, result: #{reactor.result_string}" 
+puts "matches: #{reactor.result_string == 'dabCBAcaDA'}"
 
 # RSpec.describe Reactor do
 #   describe '#result' do
