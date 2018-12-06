@@ -21,12 +21,16 @@ class Polymer
   end
 
   # go back along the way of the sequence to the left and right of the starting point, to find out how the length will retract
-  def retraction(sequence, starting_point)
+  def retraction(remainder, sequence, starting_point)
     ret = 0
-    while reacts?(sequence[starting_point-ret-1], sequence[starting_point+ret+2])
+    puts "retraction, remainder is #{remainder}, starting_point #{starting_point}" if @verbose
+    #compare the sequence from the starting_point with the remainder going backwards
+    while reacts?(sequence[starting_point+ret], remainder[-(ret+1)])
       ret += 1
     end
     puts "retracting by #{ret} at #{starting_point}" if ret > 0 && @verbose
+    remainder.pop(ret) 
+    puts "remainder is #{remainder}" if ret > 0 && @verbose
     ret
   end
 
@@ -35,29 +39,22 @@ class Polymer
   end
 
   def length_after_reaction_of(sequence)
-    remainder = []
-    # at least one reaction was done
-    found_one = false
-    retrun false if sequence.empty?
+    return 0 if sequence.empty?
 
-    count = 0
+    remainder = []
     i = 0
-    end_index = sequence.size
-    while i < end_index
-      puts "index #{i}, count #{count}" if @verbose
+    length = sequence.size
+    while i < length
       if reacts?(sequence[i], sequence[i+1])
-        puts "reaction" if @verbose
-        ret = retraction(sequence, i)
-        count -= ret
-        i += ret
-        i += 2 # omit comparing next one again
-      else
-        puts "no reaction" if @verbose
-        count += 1
+        retracted = retraction(remainder, sequence, i + 2)
+        i += retracted
         i += 1
+      else
+        remainder << sequence[i]
       end
+      i += 1
     end
-    count
+    remainder.size
   end
 
 end
@@ -77,22 +74,22 @@ class Reactor
     Polymer.new(@sequence_string).length_after_reaction
   end
 
-  # def shortest_length_after_reaction
-  #   @uniqe_units = @sequence_string.upcase.chars.uniq
-  #   @result_sizes = {}
-  #   @uniqe_units.each do |unit|
-  #     puts "unit: #{unit}"
-  #     fixed_sequence = @sequence_string.delete([unit, unit.downcase].join)
-  #     puts "fixed_sequence size: #{fixed_sequence.size}"
-  #     result = Polymer.new(fixed_sequence).result
-  #     @result_sizes[unit] = result.size
-  #     puts "result size: #{result.size}"
-  #   end
+  def shortest_length_after_reaction
+    @uniqe_units = @sequence_string.upcase.chars.uniq
+    @result_sizes = {}
+    @uniqe_units.each do |unit|
+      puts "unit: #{unit}"
+      fixed_sequence = @sequence_string.delete([unit, unit.downcase].join)
+      puts "fixed_sequence size: #{fixed_sequence.size}"
+      result = Polymer.new(fixed_sequence).length_after_reaction
+      @result_sizes[unit] = result
+      puts "result size: #{result}"
+    end
 
-  #   unit, size = @result_sizes.min_by {|unit, size| size }
-  #   puts "shortest without unit #{unit}"
-  #   size
-  # end
+    unit, size = @result_sizes.min_by {|unit, size| size }
+    puts "shortest without unit #{unit}"
+    size
+  end
 
 end
 
@@ -115,14 +112,17 @@ end
 # end
 
 reactor = Reactor.new
+test_sequence = 'dabAcCaCBAcCcaDA'
+reactor.add_line(test_sequence)
+puts "test sequence: #{test_sequence}"
+puts "result size: #{reactor.length_after_reaction}"
+
+reactor = Reactor.new
 File.open(ARGV[0]).each_line do |line|
   reactor.add_line(line.strip)
 end
 puts "result size: #{reactor.length_after_reaction}"
-
-reactor = Reactor.new
-reactor.add_line('dabAcCaCBAcCcaDA')
-puts "result size: #{reactor.length_after_reaction}"
+puts "shortest length: #{reactor.shortest_length_after_reaction}"
 
 # 'dabCBAcaDA'
 
