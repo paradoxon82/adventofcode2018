@@ -2,11 +2,13 @@
 
 require 'set'
 
+#require 'byebug'
 
 class CoordinateCollector
 
   def initialize
-    @ids = ('A'..'Z').to_a
+    @verbose = false
+    @ids = ('AA'..'ZZ').to_a
     @coords = {}
     @claimed_area = Hash.new { |hash, key| hash[key] = 0 }
     @max_x = nil
@@ -41,7 +43,7 @@ class CoordinateCollector
     @min_x = min(@min_x, x)
     @min_y = min(@min_y, y)
 
-    @coords[next_id] = {x: x, y: y}
+    @coords[id] = {x: x, y: y}
   end
 
   def add_line(line)
@@ -70,6 +72,8 @@ class CoordinateCollector
         nearest_points << id
       end
     end
+    # raise "invalid position #{x}, #{y}" if nearest_points.member?(nil)
+    # byebug if nearest_points.member?(nil)
     nearest_points
   end
 
@@ -80,19 +84,37 @@ class CoordinateCollector
   def largest_area
     ignored_points = Set.new
 
-    (@min_x..@max_x).each do |x|
-      (@min_y..@max_y).each do |y|
+    universe = [] if @verbose
+    (@min_y..@max_y).each do |y|
+      line = [] if @verbose
+      (@min_x..@max_x).each do |x|
         nearest_points = min_dist(x, y)
-        if at_edge?(x, y)
-          ignored_points.merge(nearest_points)
-        end
         if nearest_points.size == 1
-          @claimed_area[nearest_points.first] += 1
+          if at_edge?(x, y)
+            ignored_points.merge(nearest_points)
+          end
+          point = nearest_points.first
+          @claimed_area[point] += 1
+          if x == @coords[point][:x] && y == @coords[point][:y] 
+            line << point if @verbose
+          else
+            line << point.downcase if @verbose
+          end
         else
+          line << '.' if @verbose
           #equidistance points are ignored
         end
       end
+      universe << line if @verbose
     end
+
+    if @verbose
+      puts "universe"
+      universe.each do |line|
+        puts line.join
+      end
+    end
+
     puts "claimed_area #{@claimed_area}"
     puts "ignored points: #{ignored_points.to_a}"
 
@@ -104,6 +126,26 @@ class CoordinateCollector
   end
 
 end
+
+collector = CoordinateCollector.new
+# File.open(ARGV[0]).each_line do |line|
+#   collector.add_line(line.strip)
+# end
+
+lines = []
+lines << '1, 1'
+lines << '1, 6'
+lines << '8, 3'
+lines << '3, 4'
+lines << '5, 5'
+lines << '8, 9'
+
+lines.each do |line|
+ collector.add_line(line.strip)
+end
+
+point, area = collector.largest_area
+puts "result, point #{point} hast the area #{area}"
 
 collector = CoordinateCollector.new
 File.open(ARGV[0]).each_line do |line|
