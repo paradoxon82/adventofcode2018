@@ -6,7 +6,7 @@ class Polymer
 
   def initialize(initial_sequence)
     @verbose = false
-    @initial_sequence = initial_sequence.chars
+    @initial_sequence = initial_sequence
   end
 
   # reacts if the two chars are the same but different case
@@ -71,15 +71,17 @@ class Reactor
   end
 
   def length_after_reaction
-    Polymer.new(@sequence_string).length_after_reaction
+    Polymer.new(@sequence_string.chars).length_after_reaction
   end
 
   def shortest_length_after_reaction
-    @uniqe_units = @sequence_string.upcase.chars.uniq
+    sequence = @sequence_string.chars
+    @uniqe_units = sequence.uniq.map(&:upcase).uniq
+
     @result_sizes = {}
     @uniqe_units.each do |unit|
       puts "unit: #{unit}"
-      fixed_sequence = @sequence_string.delete([unit, unit.downcase].join)
+      fixed_sequence = sequence - [unit, unit.downcase]
       puts "fixed_sequence size: #{fixed_sequence.size}"
       result = Polymer.new(fixed_sequence).length_after_reaction
       @result_sizes[unit] = result
