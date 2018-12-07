@@ -4,6 +4,8 @@ require 'set'
 
 class StepCollector
 
+  attr_reader :second
+
   def initialize(workers, base_time)
     @worker_count = workers
     @base_time = base_time
@@ -152,3 +154,4 @@ File.open(ARGV[0]).each_line do |line|
 end
 
 puts "real step order: #{collector.step_order.join}"
+puts "time taken: #{collector.second}"
