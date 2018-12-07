@@ -7,7 +7,7 @@ class StepCollector
   def initialize(workers, base_time)
     @worker_count = workers
     @base_time = base_time
-    @worker_assignments = []
+    @worker_assignments = {}
     @predecessors = Hash.new { |hash, key| hash[key] = []}
     @successors = Hash.new { |hash, key| hash[key] = [] }
     @steps = Set.new
@@ -37,6 +37,7 @@ class StepCollector
       end
       # no successors any more
       @successors[step].clear
+      @steps.delete(step)
     end
   end
 
@@ -49,6 +50,8 @@ class StepCollector
 
   def ready_steps_in_alphabet(free_workers)
     ready_steps = get_steps_with_no_predecessor
+    # current assignmends should not be returned again
+    ready_steps -= @worker_assignments.keys
     puts "ready_steps #{ready_steps}"
     if ready_steps.empty?
       nil
@@ -58,33 +61,73 @@ class StepCollector
     end
   end
 
+  def finished_steps(seconds)
+    @worker_assignments.select do |step, end_time|
+      end_time <= seconds
+    end.keys
+  end
+
+  # get the steps that are finished by now and set them to done, remove them from the assignments
+  def mark_jobs_finished(steps)
+    set_steps_to_done!(steps)
+    steps.each {|step| @worker_assignments.delete(step)}
+    # return true if any jobs finished, or no jobs are running
+    # steps.size > 0 || @worker_assignments.empty?
+  end
+
   def free_worker_count
     @worker_count - @worker_assignments.size
   end
 
-  def next_ready_step!
-    @second += 1
-    next_steps = ready_steps_in_alphabet(free_worker_count)
-    if next_step
-      @steps.subtract([next_step])
-      set_steps_to_done!([next_step])
-    else
-      nil
+  def end_time_of(step, current_time)
+    extra_time = step.codepoints.first - 64
+    current_time + @base_time + extra_time
+  end
+
+  def work_on(step, current_time)
+    @worker_assignments[step] = end_time_of(step, current_time)
+    puts "working on #{step} until #{@worker_assignments[step]}"
+  end
+
+  def work_to_do?
+    !@steps.empty?
+  end
+
+  def workers_working?
+    !@worker_assignments.empty?
+  end
+
+  def next_finished_steps!
+    # wait for any job finishing
+    steps = []
+    loop do
+      steps = finished_steps(@second)
+      mark_jobs_finished(steps)
+      @second += 1 # maybe change 1 to a smart value
+      # break if any steps finished or nobody is working
+      break if steps.size > 0 || !workers_working?
     end
+
+    if next_steps = ready_steps_in_alphabet(free_worker_count)
+      next_steps.each do |step|
+        work_on(step, @second)
+      end
+    end
+    steps.sort
   end
 
   def step_order
     @second = 0
     ordered_steps = []
-    while step = next_ready_step!
-      ordered_steps << step
+    while work_to_do?
+      ordered_steps.concat(next_finished_steps!)
     end 
     ordered_steps
   end
 
 end
 
-collector = StepCollector.new
+collector = StepCollector.new(2, 0)
 # File.open(ARGV[0]).each_line do |line|
 #   collector.add_line(line.strip)
 # end
