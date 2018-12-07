@@ -31,6 +31,7 @@ class StepCollector
   # they will become ready if the predecessor array is empty for them
   def set_steps_to_done!(ready_steps)
     ready_steps.each do |step|
+      puts "step #{step} finished!"
       @successors[step].each do |successor|
         # remove the ready step from the predecessor list
         @predecessors[successor].delete(step)
@@ -52,12 +53,13 @@ class StepCollector
     ready_steps = get_steps_with_no_predecessor
     # current assignmends should not be returned again
     ready_steps -= @worker_assignments.keys
-    puts "ready_steps #{ready_steps}"
     if ready_steps.empty?
       nil
     else
       # take as much steps as there are workers
-      ready_steps.sort.take(free_workers)
+      workable = ready_steps.sort.take(free_workers)
+      puts "ready_steps #{ready_steps}, for #{free_workers}, able to work on #{workable}"
+      workable
     end
   end
 
@@ -81,12 +83,12 @@ class StepCollector
 
   def end_time_of(step, current_time)
     extra_time = step.codepoints.first - 64
-    current_time + @base_time + extra_time
+    current_time + @base_time + extra_time - 1
   end
 
   def work_on(step, current_time)
     @worker_assignments[step] = end_time_of(step, current_time)
-    puts "working on #{step} until #{@worker_assignments[step]}"
+    puts "working on #{step} from #{current_time} until #{@worker_assignments[step]}"
   end
 
   def work_to_do?
@@ -100,12 +102,11 @@ class StepCollector
   def next_finished_steps!
     # wait for any job finishing
     steps = []
-    loop do
+    while steps.size == 0 && workers_working?
       steps = finished_steps(@second)
       mark_jobs_finished(steps)
       @second += 1 # maybe change 1 to a smart value
       # break if any steps finished or nobody is working
-      break if steps.size > 0 || !workers_working?
     end
 
     if next_steps = ready_steps_in_alphabet(free_worker_count)
