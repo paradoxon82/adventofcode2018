@@ -21,7 +21,7 @@ class Starfield
 
   def initialize
     @stars = []
-    @min_x = @min_y = @max_x = @max_y = 0
+    @min_x = @min_y = @max_x = @max_y = nil
   end
 
   def parse_line(line)
@@ -36,16 +36,18 @@ class Starfield
     end
   end
 
-  def dimensions
+  def calculate_dimensions
     x_list = @stars.map(&:x)
     y_list = @stars.map(&:y)
     return x_list.min, y_list.min, x_list.max, y_list.max
   end
 
-  def calculate_dimensions
-    @min_x, @min_y, @max_x, @max_y = dimensions
-    puts "x: #{min_x} .. #{max_x}"
-    puts "y: #{min_y} .. #{max_y}"
+  def set_dimensions
+    unless @min_x
+      @min_x, @min_y, @max_x, @max_y = calculate_dimensions  
+      puts "x: #{min_x} .. #{max_x}"
+      puts "y: #{min_y} .. #{max_y}"
+    end
   end
 
   def move_step
@@ -55,7 +57,9 @@ class Starfield
   end
 
   def print_stars
+    set_dimensions
     field = Array.new(max_y - min_y + 1) { |i| Array.new(max_x - min_x + 1) { |i| '.' } }
+    puts "init starfield with dimensions #{max_x - min_x + 1} x #{max_y - min_y + 1}"
     @stars.each do |star|
       #puts "putting star #{star.x} - #{star.y} at relative position #{star.x - min_x} - #{star.y - min_y}"
       field[star.y - min_y][star.x - min_x] = '#'
@@ -102,7 +106,17 @@ field = Starfield.new
 example.each do |line|
   field.add_line(line.strip)
 end
-field.calculate_dimensions
+5.times do 
+  field.print_stars
+  field.move_step
+  puts 
+end
+
+
+field = Starfield.new
+File.open(ARGV[0]).each_line do |line|
+  field.add_line(line.strip)
+end
 5.times do 
   field.print_stars
   field.move_step
