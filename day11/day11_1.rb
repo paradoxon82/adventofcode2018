@@ -28,11 +28,15 @@ class PowerGrid
     end
   end
 
+  def power_level_at(x, y)
+    corrdinates[y-1][x-1].power_level
+  end
+
   def power_level_of_subgrid(x, y, size)
     sum = 0
     (0...size).each do |dx|
       (0...size).each do |dy|
-        sum += corrdinates[y+dy-1][x+dx-1].power_level
+        sum += power_level_at(x+dx, y+dy)
       end
     end
     sum
@@ -55,6 +59,55 @@ class PowerGrid
     return found_x, found_y
   end
 
+  def power_level_of_subgrid_edge(x, y, size)
+    right_edge_x = (x + size) - 1
+    edge_power = (y..(y+size-1)).map do |y|
+      power_level_at(right_edge_x, y)
+    end.inject(:+)
+
+    if size > 1
+      bottom_edge_y = (y + size) - 1
+      bottom_edge_power = (x..(x+size-2)).map do |x|
+        power_level_at(x, bottom_edge_y)
+      end.inject(:+)
+      edge_power +=  bottom_edge_power
+    end
+
+    edge_power
+  end
+
+  def max_subgrid_at(x, y)
+    # if any coordinate is at the edge, max_size is 1
+    max_power_level = nil
+    size_at_max_power = nil
+    current_power_level = 0
+    max_size = (300 - [x, y].max) + 1
+    (1..max_size).each do |size|
+      current_power_level += power_level_of_subgrid_edge(x, y, size)
+      if max_power_level.nil? || current_power_level > max_power_level
+        max_power_level = current_power_level
+        size_at_max_power = size
+      end
+    end
+    {power_level: max_power_level, size: size_at_max_power, x: x, y: y}
+  end
+
+  def max_subgrid
+    found_subgrid = nil
+    max_level = nil
+    (1..300).each do |y|
+      (1..300).each do |x|
+        subgrid = max_subgrid_at(x, y)
+        puts "max_subgrid_at: #{x},#{y} - #{subgrid[:power_level]} : size #{subgrid[:size]}"
+        if (max_level.nil? || subgrid[:power_level] > max_level) 
+          max_level = subgrid[:power_level]
+          found_subgrid = subgrid
+        end
+      end
+    end
+    found_subgrid
+  end
+
 end
 
 [[122,79, 57], [217,196, 39], [101,153, 71]].each do |x, y, serial|
@@ -64,3 +117,5 @@ end
 
 grid = PowerGrid.new(2694)
 puts "highest powered subgrid (3x3): #{grid.max_subgrid_3_by_3}"
+subgrid = grid.max_subgrid
+puts "highest powered subgrid: #{subgrid[:x]},#{subgrid[:y]},#{subgrid[:size]} : #{subgrid[:power_level]}"
