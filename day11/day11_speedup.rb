@@ -95,16 +95,21 @@ class PowerGrid
     bottom_edge_y = (y + size) - 1
 
     y_sums = y_integral[right_edge_x]
-    y_sum = y_sums[bottom_edge_y] - y_sums.fetch(y - 1, 0)
+    sum_start_y = (y - 1) >= 0 ? y_sums[y - 1] : 0
+    y_sum = y_sums[bottom_edge_y] - sum_start_y
 
     if size > 1
       x_sums = x_integral[bottom_edge_y]
-      x_sum = x_sums[right_edge_x - 1] - x_sums.fetch(x - 1, 0)
+      sum_start_x = (x - 1) >= 0 ? x_sums[x - 1] : 0
+      x_sum = x_sums[right_edge_x - 1] - sum_start_x
     else
       x_sum = 0
     end
 
-    #puts "at #{x},#{y},#{size}: x_edge"
+    # if size == 1
+    #   puts "at #{x},#{y},#{size} - right edge: #{y_sum} at #{right_edge_x}, bottom edge: #{x_sum}"
+    #   puts "right edge array: #{y_sums.join(', ')}"
+    # end
 
     x_sum + y_sum
   end
@@ -131,7 +136,7 @@ class PowerGrid
     (1..300).each do |y|
       (1..300).each do |x|
         subgrid = max_subgrid_at(x, y)
-        puts "max_subgrid_at: #{x},#{y} - #{subgrid[:power_level]} : size #{subgrid[:size]}" if $verbose
+        #puts "max_subgrid_at: #{x},#{y} - #{subgrid[:power_level]} : size #{subgrid[:size]}" if $verbose
         if (max_level.nil? || subgrid[:power_level] > max_level) 
           max_level = subgrid[:power_level]
           found_subgrid = subgrid
