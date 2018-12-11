@@ -49,6 +49,10 @@ class PowerGrid
         @x_integral[y][x] = @x_integral[y].fetch(x - 1, 0) + cell.power_level
         @y_integral[x][y] = @y_integral[x].fetch(y - 1, 0) + cell.power_level
       end
+      if y == 0
+        puts @corrdinates[y].map { |cell| cell.power_level }.join(', ')
+        puts @x_integral[y].join(', ')
+      end
     end
 
   end
@@ -91,14 +95,18 @@ class PowerGrid
     bottom_edge_y = (y + size) - 1
 
     y_sums = y_integral[right_edge_x]
-    edge_power = y_sums[bottom_edge_y] - y_sums.fetch(y - 1, 0)
+    y_sum = y_sums[bottom_edge_y] - y_sums.fetch(y - 1, 0)
 
     if size > 1
       x_sums = x_integral[bottom_edge_y]
-      edge_power += x_sums[right_edge_x] - y_sums.fetch(x - 1, 0)
+      x_sum = x_sums[right_edge_x - 1] - x_sums.fetch(x - 1, 0)
+    else
+      x_sum = 0
     end
 
-    edge_power
+    #puts "at #{x},#{y},#{size}: x_edge"
+
+    x_sum + y_sum
   end
 
   def max_subgrid_at(x, y)
