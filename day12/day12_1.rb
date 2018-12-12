@@ -6,56 +6,42 @@ class Pots
   attr_reader :state, :transitions
 
   def initialize(state, transitions)
-    @state = state
+    @state = []
+    state.chars.each_with_index do |pot, position|
+      if pot == '#'
+        @state << position
+      end
+    end
+
     @transitions = transitions
   end
 
-  def pad_string(state)
-    prefix = state[0..2]
-    suffix = state[-3..-1]
-    # pre_pad = case prefix
-    # when '...'
-    #   '.'
-    # when '..#'
-    #   '.'
-    # when '.#.', '.##'
-    #   '..'
-    # when '#..', '##.', '###', '#.#'
-    #   '...'
-    # else
-    #   ''
-    # end
+  def position_range
+    (@state.min-3)..(@state.max+3)
+  end
 
-    # suffix_pad = case suffix
-    # when '...'
-    #   '.'
-    # when '..#'
-    #   '.'
-    # when '.#.', '.##'
-    #   '..'
-    # when '#..', '##.', '###', '#.#'
-    #   '...'
-    # else
-    #   ''
-    # end
+  def position_range_unpadded
+    @state.min..@state.max
+  end
 
-    '...' + state + '...'
+  def string_from(pos_tuple)
+    pos_tuple.map do |pos|
+      if @state.member? pos
+        '#'
+      else
+        '.'
+      end
+    end.join
   end
 
   def next_state(state)
     new_state = []
-    pots = pad_string(state).chars
-    pots.each_cons(5) do |tuple|
-      # if tuple.join == '.#.#.'
-      #   puts "debug #{new_state}"
-      # end
-      if new_pot = transitions[tuple.join]
-        new_state << new_pot
-      else
-        new_state << '.'
+    position_range.each_cons(5) do |pos_tuple|
+      if new_pot = transitions[string_from(pos_tuple)]
+        new_state << pos_tuple[2] if new_pot == '#'
       end
     end
-    new_state.join
+    new_state
   end
 
   def transform()
@@ -63,7 +49,11 @@ class Pots
   end
 
   def plant_count
-    @state.count('#')
+    @state.inject(0, :+)
+  end
+
+  def state_string
+    string_from(position_range_unpadded)
   end
 
 end
@@ -104,18 +94,16 @@ class PotCounter
 
   def sum_after_generations(generations)
     pots = Pots.new(@initial_state, @transitions)
-    sum = pots.plant_count
     generations.times do |iteration|
       pots.transform
-      puts "#{iteration}:\t#{pots.state}"
-      sum += pots.plant_count
+      puts "#{iteration}:\t#{pots.state_string}"
     end
 
-    return sum
+    return pots.plant_count
   end
 end
 
-inital_state_exaple = '...#..#.#..##......###...###............'
+inital_state_exaple = '#..#.#..##......###...###'
 
 transitions = {
     '...##' => '#',
@@ -134,14 +122,16 @@ transitions = {
     '####.' => '#'}
 
 pots = Pots.new(inital_state_exaple, transitions)
-sum = 0
-21.times do |iteration|
+20.times do |iteration|
+  puts "#{iteration}:\t#{pots.state_string}"
   puts "#{iteration}:\t#{pots.state}"
-  puts "plant_count: #{pots.plant_count}"
-  sum += pots.plant_count
+
+  #puts "plant_count: #{pots.plant_count}"
   pots.transform
 end
-puts "sum after 20 generations: #{sum}"
+puts "#{20}:\t#{pots.state_string}"
+puts "#{20}:\t#{pots.state}"
+puts "sum after 20 generations: #{pots.plant_count}"
 
 counter = PotCounter.new
 if ARGV[0] && File.exists?(ARGV[0])
