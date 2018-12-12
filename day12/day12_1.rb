@@ -52,6 +52,12 @@ class Pots
     @state.inject(0, :+)
   end
 
+  def plant_count_corrected(delta)
+    @state.inject(0) do |sum, position|
+      sum + position + delta
+    end
+  end
+
   def state_string
     string_from(position_range_unpadded)
   end
@@ -94,9 +100,17 @@ class PotCounter
 
   def sum_after_generations(generations)
     pots = Pots.new(@initial_state, @transitions)
+    states = []
     generations.times do |iteration|
       pots.transform
-      puts "#{iteration}:\t#{pots.state_string}"
+      puts "iteration: #{iteration}, range #{pots.position_range_unpadded}, sum #{pots.plant_count}, corrected sum sum #{pots.plant_count_corrected(-iteration)}"
+      puts "plants: #{pots.state.size}, corrected to generations: #{pots.plant_count_corrected(generations - iteration - 1)}"
+
+      if (states.member? pots.state)
+        raise "state at iteration #{iteration} is a repeat"
+      end
+      states << pots.state 
+      #puts "#{iteration}:\t#{pots.state_string}"
     end
 
     return pots.plant_count
@@ -124,7 +138,7 @@ transitions = {
 pots = Pots.new(inital_state_exaple, transitions)
 20.times do |iteration|
   puts "#{iteration}:\t#{pots.state_string}"
-  puts "#{iteration}:\t#{pots.state}"
+#  puts "#{iteration}:\t#{pots.state}"
 
   #puts "plant_count: #{pots.plant_count}"
   pots.transform
@@ -140,4 +154,5 @@ if ARGV[0] && File.exists?(ARGV[0])
   end
 
   puts "sum after 20 generations: #{counter.sum_after_generations(20)}"
+  puts "sum after 50000000000 generations: #{counter.sum_after_generations(50000000000)}"
 end
