@@ -49,10 +49,6 @@ class PowerGrid
         @x_integral[y][x] = @x_integral[y].fetch(x - 1, 0) + cell.power_level
         @y_integral[x][y] = @y_integral[x].fetch(y - 1, 0) + cell.power_level
       end
-      if y == 0
-        puts @corrdinates[y].map { |cell| cell.power_level }.join(', ')
-        puts @x_integral[y].join(', ')
-      end
     end
 
   end
