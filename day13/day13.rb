@@ -3,26 +3,36 @@
 $verbose = true
 
 class Cart
-  attr_reader :direction
+  attr_accessor :moved
 
-  def initialize(direction)
-    @direction = direction
+  def initialize(dir)
+    set_direction(dir)
     @turns = [:left, :straight, :right]
+    @moved = false
+    #puts "cart direction #{direction}, #{self.object_id}"
+  end
+
+  def direction
+    raise "unknown direction for cart #{@direction}, #{self.object_id}" unless orientation_map.keys.member?(@direction)
+    @direction
+  end
+
+  def set_direction(dir)
+    raise "unknown direction for cart #{dir}" unless orientation_map.keys.member?(dir)
+    @direction = dir
+  end
+
+  def orientation_map
+    {
+      up: '^',
+      down: 'v',
+      right: '>',
+      left: '<'
+    }
   end
 
   def symbol
-    case direction
-    when :up
-      '^'
-    when :down
-      'v'
-    when :right
-      '>'
-    when :left
-      '<'
-    else
-      '?'
-    end
+    orientation_map.fetch(direction, '?')
   end
 
   def change_at_crossing
@@ -55,79 +65,139 @@ class Cart
       end
     end
 
-    change_pos = case new_direction
-    when :up
-      {dy: -1}
-    when :down
-      {dy: 1}
-    when :right
-      {dx: 1}
-    when :left
-      {dx: -1}
-    else
-        raise "Illegal track_orientation #{track_orientation} for direction #{direction}"
-    end
+    # change_pos = case new_direction
+    # when :up
+    #   {dy: -1}
+    # when :down
+    #   {dy: 1}
+    # when :right
+    #   {dx: 1}
+    # when :left
+    #   {dx: -1}
+    # else
+    #     raise "Illegal track_orientation #{track_orientation} for direction #{direction}"
+    # end
 
-    @direction = new_direction
     # switch to the next turn
     @turns.rotate!
-    {dx: 0, dy: 0, direction: direction}.merge(change_pos)
+    new_direction
   end
 
   def position_delta(track_orientation)
-    change = case track_orientation 
-    when :horizontal  
-      case direction
-      when :left
-        {dx: -1}
-      when :right
-        {dx: 1}
-      else
-        raise "Illegal track_orientation #{track_orientation} for direction #{direction}"
-      end
-    when :vertical
-      case direction
-      when :up
-        {dy: -1}
-      when :down
-        {dy: 1}
-      else
-        raise "Illegal track_orientation #{track_orientation} for direction #{direction}"
-      end
+    change = case direction
+    when :left
+      raise "Illegal move #{direction} on track #{track_orientation}" if track_orientation == :vertical
+      {dx: -1}
+    when :right
+      raise "Illegal move #{direction} on track #{track_orientation}" if track_orientation == :vertical
+      {dx: 1}
+    when :up
+      raise "Illegal move #{direction} on track #{track_orientation}" if track_orientation == :horizontal
+      {dy: -1}
+    when :down
+      raise "Illegal move #{direction} on track #{track_orientation}" if track_orientation == :horizontal
+      {dy: 1}
+    else
+      raise "Illegal direction '#{direction}'"
+    end
+
+    chage_to_cart = {dx: 0, dy: 0}.merge(change)
+
+  end
+
+  def reorient(track_orientation)
+    new_direction = case track_orientation
     when :crossing
       change_at_crossing
     when :slash #'/'
       case direction
       when :up
-        {dx: 1,dy: -1, direction: :right}
+        :right
       when :left
-        {dx: -1,dy: 1, direction: :down}
+        :down
       when :right
-        {dx: 1, dy: -1, direction: :up}
+        :up
       when :down
-        {dx: -1, dy: 1, direction: :left}
+        :left
       else
         raise "Illegal track_orientation #{track_orientation} for direction #{direction}"
       end
     when :backslash #'\\'
       case direction
       when :up
-        {dx: -1,dy: -1, direction: :left}
+        :left
       when :left
-        {dx: -1,dy: -1, direction: :up}
+        :up
       when :right
-        {dx: 1, dy: 1, direction: :down}
+        :down
       when :down
-        {dx: 1, dy: 1, direction: :right}
+        :right
       else
         raise "Illegal track_orientation #{track_orientation} for direction #{direction}"
       end
+    when :horizontal, :vertical
+      # do nothing
+      direction
     else
       raise "orientation #{track_orientation} unknown"
     end
-
-    chage_to_cart = {dx: 0, dy: 0, direction: direction}.merge(change)
+    set_direction(new_direction)
   end
+
+  # def position_delta_old(track_orientation)
+  #   change = case track_orientation 
+  #   when :horizontal  
+  #     case direction
+  #     when :left
+  #       {dx: -1}
+  #     when :right
+  #       {dx: 1}
+  #     else
+  #       raise "Illegal track_orientation #{track_orientation} for direction #{direction}"
+  #     end
+  #   when :vertical
+  #     case direction
+  #     when :up
+  #       {dy: -1}
+  #     when :down
+  #       {dy: 1}
+  #     else
+  #       raise "Illegal track_orientation #{track_orientation} for direction #{direction}"
+  #     end
+  #   when :crossing
+  #     change_at_crossing
+  #   when :slash #'/'
+  #     case direction
+  #     when :up
+  #       {dx: 1,dy: -1, direction: :right}
+  #     when :left
+  #       {dx: -1,dy: 1, direction: :down}
+  #     when :right
+  #       {dx: 1, dy: -1, direction: :up}
+  #     when :down
+  #       {dx: -1, dy: 1, direction: :left}
+  #     else
+  #       raise "Illegal track_orientation #{track_orientation} for direction #{direction}"
+  #     end
+  #   when :backslash #'\\'
+  #     case direction
+  #     when :up
+  #       {dx: -1,dy: -1, direction: :left}
+  #     when :left
+  #       {dx: -1,dy: -1, direction: :up}
+  #     when :right
+  #       {dx: 1, dy: 1, direction: :down}
+  #     when :down
+  #       {dx: 1, dy: 1, direction: :right}
+  #     else
+  #       raise "Illegal track_orientation #{track_orientation} for direction #{direction}"
+  #     end
+  #   else
+  #     raise "orientation #{track_orientation} unknown"
+  #   end
+
+  #   chage_to_cart = {dx: 0, dy: 0, direction: direction}.merge(change)
+  # end
 end
 
 class Track
@@ -246,21 +316,35 @@ class CartPaths
     row_new = row + postition_change[:dy]
     column_new = column + postition_change[:dx]
     @cart_positions[row_new][column_new] = cart
+    return row_new, column_new
   end
 
   def move_cart(cart, row, column)
     if track_orientation = @road_positions[row][column].orientation
-      puts "moving cart at #{row},#{column}"
+      puts "moving cart at #{row},#{column}, orientation: '#{track_orientation}'"
       postition_change = cart.position_delta(track_orientation)
-      reposition_cart(row, column, postition_change)
+      row_new, column_new = reposition_cart(row, column, postition_change)
+      raise "no road at #{row_new},#{column_new}" unless @road_positions[row_new][column_new]
+      cart.reorient(@road_positions[row_new][column_new].orientation)
+      cart.moved = true
     else
       raise "cart got of tracks at #{row},#{column}"
     end
   end
 
+  def set_carts_to_unmoved
+    @cart_positions.each do |row, cols|
+      cols.each do |col, cart|
+        cart.moved = false
+      end
+    end
+  end
+
   def next_step
+    set_carts_to_unmoved
     @cart_positions.keys.sort.each do |row|
       @cart_positions[row].keys.sort.each do |column|
+        next if @cart_positions[row][column].moved
         move_cart(@cart_positions[row][column], row, column)
       end
     end
@@ -276,6 +360,7 @@ class CartPaths
   end
 
   def first_crash
+    print_state
     20.times do |step| 
       next_step
       print_state
