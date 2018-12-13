@@ -10,6 +10,21 @@ class Cart
     @turns = [:left, :straight, :right]
   end
 
+  def symbol
+    case direction
+    when :up
+      '^'
+    when :down
+      'v'
+    when :right
+      '>'
+    when :left
+      '<'
+    else
+      '?'
+    end
+  end
+
   def change_at_crossing
     current_turn = @turns.first
 
@@ -116,10 +131,11 @@ class Cart
 end
 
 class Track
-  attr_reader :orientation
+  attr_reader :orientation, :symbol
 
-  def initialize(orientation)
+  def initialize(orientation, symbol)
     @orientation = orientation
+    @symbol = symbol
   end
 end
 
@@ -132,6 +148,36 @@ class CartPaths
   def initialize
     @cart_positions = Hash.new { |hash, key| hash[key] = {} }
     @road_positions = Hash.new { |hash, key| hash[key] = {} }
+  end
+
+  def max_row
+    [@cart_positions.keys.max, @road_positions.keys.max].max
+  end
+
+  def max_column
+    max_col = nil
+    @cart_positions.each do |row, cols|
+      local_max = cols.keys.max
+      next unless local_max
+      max_col = (max_col.nil? || (max_col < local_max)) ? local_max : max_col
+    end
+
+    @road_positions.each do |row, cols|
+      local_max = cols.keys.max
+      next unless local_max
+      max_col = (max_col.nil? || (max_col < local_max)) ? local_max : max_col
+    end
+    max_col
+  end
+
+  def char_at(row, column)
+    if @cart_positions[row].member?(column)
+      @cart_positions[row][column].symbol
+    elsif @road_positions[row].member?(column)
+      @road_positions[row][column].symbol
+    else
+      ' '
+    end
   end
 
   def register_road(orientation_char, row, column)
@@ -151,7 +197,7 @@ class CartPaths
       raise "orientation #{orientation_char} for road at #{row},#{column} could not be parsed"
     end
     
-    @road_positions[row][column] = Track.new(orientation)
+    @road_positions[row][column] = Track.new(orientation, orientation_char)
   end
 
   def register_cart(direction_char, row, column)
@@ -220,8 +266,20 @@ class CartPaths
     end
   end
 
+  def print_state
+    (0..max_row).each do |row|
+      line = (0..max_column).map do |col|
+        char_at(row,col)
+      end.join
+      puts line
+    end
+  end
+
   def first_crash
-    next_step
+    20.times do |step| 
+      next_step
+      print_state
+    end
     0
   end
 end
@@ -233,4 +291,21 @@ if ARGV[0] && File.exists?(ARGV[0])
   end
   
   puts "first crash at: #{tracks.first_crash}"
+
+else
+  example = [
+'/->-\\        ',
+'|   |  /----\\',
+'| /-+--+-\\  |',
+'| | |  | v  |',
+'\\-+-/  \\-+--/',
+'  \\------/   ']
+  
+  tracks = CartPaths.new
+  example.each_with_index do |line, row|
+    tracks.add_line(line, row)
+  end
+
+  puts "first crash at: #{tracks.first_crash}"
+
 end
