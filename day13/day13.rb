@@ -273,7 +273,7 @@ class CartPaths
     row_new = row + postition_change[:dy]
     column_new = column + postition_change[:dx]
     if @cart_positions[row_new][column_new]
-      raise CartCrashException, "Cart crash at #{row},#{column}"
+      raise CartCrashException, "Cart crash at #{column},#{row}"
     else
       @cart_positions[row_new][column_new] = cart
     end
@@ -322,11 +322,12 @@ class CartPaths
 
   def first_crash
     print_state
-    20.times do |step| 
+    100000.times do |step| 
       begin
         next_step
         print_state
       rescue CartCrashException => e
+        puts "iteration #{step}"
         puts e.message
         exit 0
       # rescue Exception => e
