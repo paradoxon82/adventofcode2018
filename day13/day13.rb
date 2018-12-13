@@ -272,8 +272,11 @@ class CartPaths
     cart = @cart_positions[row].delete(column)
     row_new = row + postition_change[:dy]
     column_new = column + postition_change[:dx]
+
+    puts "moving cart at #{row},#{column} to #{row_new},#{column_new}"
+
     if @cart_positions[row_new][column_new]
-      raise CartCrashException, "Cart crash at #{column},#{row}"
+      raise CartCrashException, "Cart crash at #{column_new},#{row_new}"
     else
       @cart_positions[row_new][column_new] = cart
     end
@@ -282,7 +285,6 @@ class CartPaths
 
   def move_cart(cart, row, column)
     if track_orientation = @road_positions[row][column].orientation
-      puts "moving cart at #{row},#{column}, orientation: '#{track_orientation}'"
       postition_change = cart.position_delta(track_orientation)
       row_new, column_new = reposition_cart(row, column, postition_change)
       raise "no road at #{row_new},#{column_new}" unless @road_positions[row_new][column_new]
