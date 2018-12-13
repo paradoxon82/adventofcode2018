@@ -144,60 +144,6 @@ class Cart
     set_direction(new_direction)
   end
 
-  # def position_delta_old(track_orientation)
-  #   change = case track_orientation 
-  #   when :horizontal  
-  #     case direction
-  #     when :left
-  #       {dx: -1}
-  #     when :right
-  #       {dx: 1}
-  #     else
-  #       raise "Illegal track_orientation #{track_orientation} for direction #{direction}"
-  #     end
-  #   when :vertical
-  #     case direction
-  #     when :up
-  #       {dy: -1}
-  #     when :down
-  #       {dy: 1}
-  #     else
-  #       raise "Illegal track_orientation #{track_orientation} for direction #{direction}"
-  #     end
-  #   when :crossing
-  #     change_at_crossing
-  #   when :slash #'/'
-  #     case direction
-  #     when :up
-  #       {dx: 1,dy: -1, direction: :right}
-  #     when :left
-  #       {dx: -1,dy: 1, direction: :down}
-  #     when :right
-  #       {dx: 1, dy: -1, direction: :up}
-  #     when :down
-  #       {dx: -1, dy: 1, direction: :left}
-  #     else
-  #       raise "Illegal track_orientation #{track_orientation} for direction #{direction}"
-  #     end
-  #   when :backslash #'\\'
-  #     case direction
-  #     when :up
-  #       {dx: -1,dy: -1, direction: :left}
-  #     when :left
-  #       {dx: -1,dy: -1, direction: :up}
-  #     when :right
-  #       {dx: 1, dy: 1, direction: :down}
-  #     when :down
-  #       {dx: 1, dy: 1, direction: :right}
-  #     else
-  #       raise "Illegal track_orientation #{track_orientation} for direction #{direction}"
-  #     end
-  #   else
-  #     raise "orientation #{track_orientation} unknown"
-  #   end
-
-  #   chage_to_cart = {dx: 0, dy: 0, direction: direction}.merge(change)
-  # end
 end
 
 class Track
@@ -207,6 +153,17 @@ class Track
     @orientation = orientation
     @symbol = symbol
   end
+end
+
+class CartCrashException < StandardError
+  # def initilalize(row, column)
+  #   @row = row
+  #   @column = column
+  # end
+
+  # def message
+  #   "Cart crash at #{row},#{column}"
+  # end
 end
 
 class CartPaths
@@ -315,7 +272,11 @@ class CartPaths
     cart = @cart_positions[row].delete(column)
     row_new = row + postition_change[:dy]
     column_new = column + postition_change[:dx]
-    @cart_positions[row_new][column_new] = cart
+    if @cart_positions[row_new][column_new]
+      raise CartCrashException, "Cart crash at #{row},#{column}"
+    else
+      @cart_positions[row_new][column_new] = cart
+    end
     return row_new, column_new
   end
 
@@ -362,8 +323,16 @@ class CartPaths
   def first_crash
     print_state
     20.times do |step| 
-      next_step
-      print_state
+      begin
+        next_step
+        print_state
+      rescue CartCrashException => e
+        puts e.message
+        exit 0
+      # rescue Exception => e
+      #   puts e
+      #   exit 1
+      end
     end
     0
   end
