@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 
-$verbose = true
+$verbose = false
 
 class Cart
   attr_accessor :moved
@@ -327,7 +327,7 @@ class CartPaths
     100000.times do |step| 
       begin
         next_step
-        print_state
+        print_state if $verbose
       rescue CartCrashException => e
         puts "iteration #{step}"
         puts e.message
