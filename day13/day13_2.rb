@@ -237,7 +237,7 @@ class CartPaths
     else
       raise "direction #{direction_char} for cart at #{row},#{column} could not be parsed"
     end
-    puts "starting cart at #{row},#{column}, direction #{direction}"
+    puts "starting cart at #{row},#{column}, direction #{direction}" if $verbose
     @cart_positions[row][column] = Cart.new(direction)
     register_road(road_char, row, column)
   end
@@ -273,7 +273,7 @@ class CartPaths
     row_new = row + postition_change[:dy]
     column_new = column + postition_change[:dx]
 
-    puts "moving cart at #{row},#{column} to #{row_new},#{column_new}"
+    puts "moving cart at #{row},#{column} to #{row_new},#{column_new}" if $verbose
 
     if @cart_positions[row_new][column_new]
       cart_crash_at(row_new, column_new)
@@ -340,7 +340,7 @@ class CartPaths
   end
 
   def first_crash
-    print_state
+    print_state if $verbose
     100000.times do |step| 
       begin
         next_step
