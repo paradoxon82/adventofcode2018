@@ -6,8 +6,9 @@ class RecipeCreator
   attr_reader :pos1, :pos2, :size
 
   def initialize(iterations)
-    @recipies = Array.new
-    @recipies[0..1] = [3, 7]
+    @recipies = Array.new()
+    @recipies[0] = 3
+    @recipies[1] = 7
     @size = 2
     @pos1 = 0
     @pos2 = 1
@@ -23,12 +24,18 @@ class RecipeCreator
     @recipies[pos2]
   end
 
-  def new_recipies
-    list = (score1 + score2).to_s.split('').map(&:to_i)
-    @recipies[size...(list.size + size)] = list
-    @size += list.size
-    @last_increase = list.size
-    #puts "new size  #{@size}"
+  def new_recipies 
+    sum = (score1 + score2)
+    if sum < 10
+      @recipies << sum
+      @last_increase = 1
+    else
+      @recipies << 1
+      @recipies << sum - 10
+      @last_increase = 2
+    end
+
+    @size += @last_increase
   end
 
   def next_step
@@ -110,7 +117,7 @@ class RecipeCreator
   def step_until_sequence(key_sequence)
     while !sequence_found?(key_sequence, @last_increase)
       next_step
-      if (size % 10000) == 0
+      if (size % 1000000) == 0
         puts "at step #{size}"
       end
     end
