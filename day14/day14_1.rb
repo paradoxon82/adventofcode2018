@@ -6,11 +6,13 @@ class RecipeCreator
   attr_reader :pos1, :pos2, :size
 
   def initialize(iterations)
-    @recipies = Array.new(iterations) { |i| nil }
+    @recipies = Array.new
     @recipies[0..1] = [3, 7]
     @size = 2
     @pos1 = 0
     @pos2 = 1
+    @last_increase = nil
+    @fount_at_step_back = nil
   end
 
   def score1 
@@ -25,6 +27,7 @@ class RecipeCreator
     list = (score1 + score2).to_s.split('').map(&:to_i)
     @recipies[size...(list.size + size)] = list
     @size += list.size
+    @last_increase = list.size
     #puts "new size  #{@size}"
   end
 
@@ -66,6 +69,57 @@ class RecipeCreator
       next_step
     end
   end
+
+  def sequence_found_at?(key_sequence, pos)
+    return false if (size + pos) < key_sequence.size
+
+    key_sequence.each_with_index do |c, i|
+      return false if @recipies[i+pos] != c
+    end
+
+    true
+
+
+    #puts "#{pos}...#{(pos+key_sequence.size)} #{in_recipies} vs #{key_sequence}, full size #{@recipies.size}"
+    # if @recipies[pos...(pos+key_sequence.size)].size != key_sequence.size
+    #   raise "error size #{in_recipies.size} vs #{key_sequence.size}"
+    # end
+
+    # in_recipies.each_with_index do |c, i|
+    #   if c.class != key_sequence[i].class
+    #     raise "error"
+    #   end
+    # end
+
+    # @recipies[pos...(pos+key_sequence.size)] == key_sequence
+  end
+
+  def sequence_found?(key_sequence, step_back)
+    return false unless step_back
+    
+    step_back.times do |step|
+      #puts "step_back #{step}"
+      if sequence_found_at?(key_sequence, size-key_sequence.size-step)
+        @fount_at_step_back = step
+        return true
+      end
+    end
+    false
+  end
+
+  def step_until_sequence(key_sequence)
+    while !sequence_found?(key_sequence, @last_increase)
+      next_step
+      if (size % 10000) == 0
+        puts "at step #{size}"
+      end
+    end
+  end
+
+  def count_left_of_key(key_sequence)
+    puts "#{size} - #{key_sequence.size} - #{@fount_at_step_back}"
+    size - key_sequence.size - @fount_at_step_back
+  end
  
 end
 
@@ -80,3 +134,9 @@ end
 puts "begin stepping.."
 creator.step_until(iterations + 10)
 creator.print_last(10)
+
+key_sequence = '047801'.split('').map(&:to_i)
+
+creator = RecipeCreator.new(100000000)
+creator.step_until_sequence(key_sequence)
+puts "left of key_sequence: #{creator.count_left_of_key(key_sequence)}"
