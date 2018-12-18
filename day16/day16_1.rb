@@ -35,6 +35,10 @@ class Registerstate
       false
     end
   end
+
+  def to_s
+    @state.to_s
+  end
 end
 
 class Operation
@@ -136,6 +140,12 @@ class OpTest
     res = operation.apply(@before, @input)
     res == after
   end
+
+  def print
+    puts "Before: #{@before}"
+    puts @input.join(' ')
+    puts "After: #{@after}"
+  end
 end
 
 class OpPredictor
@@ -152,7 +162,7 @@ class OpPredictor
     elsif m = /After:\s+\[(\d+), (\d+), (\d+), (\d+)\]/.match(line)
       {type: :after, value: Registerstate.new([m[1], m[2], m[3], m[4] ])}
     elsif m = /(\d+) (\d+) (\d+) (\d+)/.match(line)
-      {type: :input, value: [m[1], m[2], m[3], m[4] ]}
+      {type: :input, value: [m[1].to_i, m[2].to_i, m[3].to_i, m[4].to_i ]}
     elsif !line.empty?
       raise "unrecognizef format of #{line}"
     else
@@ -181,9 +191,17 @@ class OpPredictor
     end
   end
 
+  def print_tests
+    @tests.each do |test|
+      test.print
+      puts ""
+    end
+  end
+
 end
 
 predictor = OpPredictor.new
 File.open(ARGV[0]).each_line do |line|
   predictor.add_line(line.strip)
 end
+predictor.print_tests
