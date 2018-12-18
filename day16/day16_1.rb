@@ -1,5 +1,7 @@
 #!/usr/bin/ruby
 
+require 'set'
+
 class Registerstate
   attr_reader :state
 
@@ -88,6 +90,17 @@ class Operation
     @operations
   end
 
+  def self.operation_for_name(name)
+    @name_map ||= begin
+      out = {}
+      operations.each do |op|
+        out[op.name] = op
+      end
+      out
+    end
+    @name_map[name]
+  end
+
   def self.init_operations
     ops = []
     ops << Operation.new('addr', :register, :register, :+)
@@ -128,6 +141,10 @@ class OpTest
     @before = before
     @after = after
     @input = input
+  end
+
+  def operation_id
+    @input[0]
   end
 
   def add_input(input)
@@ -201,22 +218,98 @@ class OpPredictor
     end
   end
 
-  def matching_operations
+  def calculate_matches
     matching_ops = Hash.new { |hash, key| hash[key] = [] }
+    id_name_matches = Hash.new { |hash, key| hash[key] = Set.new }
     @tests.each_with_index do |op_test, row|
-      puts "Test"
+      puts "Test, op id is #{op_test.operation_id}"
       puts op_test.print
       Operation.operations.each do |op|
         #puts "operation '#{op.name}'"
         if op_test.matches?(op)
+          id_name_matches[op_test.operation_id] << op.name
           matching_ops[row] << op.name
           puts "matches operation '#{op.name}'"
         end
       end
     end
-    matching_ops
-  end 
+    puts "id_name_matches count #{id_name_matches.size}"
 
+    map = {}
+    id_name_matches.each do |id, name_set|
+      map[id] = name_set.to_a
+    end
+    {test_matches: matching_ops, id_name_matches: map}
+  end
+
+  def apply_operations(operation_map)
+    state = Registerstate.new([0, 0, 0, 0])
+    @inputs.each do |input|
+      op_name = operation_map[input[0]]
+      puts "op id #{input[0]} maps to #{op_name}"
+      op = Operation.operation_for_name(op_name)
+      state = op.apply(state, input)
+    end
+    puts "final state #{state}"
+  end
+
+end
+
+class OperationResolver
+
+  def initialize(id_name_matches)
+    @id_name_matches = id_name_matches
+    @id_name_mapping = {}
+  end
+
+  def get_unique_matches
+    @id_name_matches.select do |id, names|
+      names.size == 1
+    end
+  end
+
+  def remove_from_ambiguous_list(id, name)
+    @id_name_matches.delete(id)
+    # remove the name from the ambiguous names list
+    @id_name_matches.each do |_id, _names|
+      _names.delete(name)
+    end
+    # remove empty parts
+    @id_name_matches.delete_if do |_id, _names|
+      _names.empty?
+    end
+  end
+
+  def print_ambiguous_list
+    puts "remaining ambiguous mappings"
+    @id_name_matches.each do |id, names|
+      puts "id #{id} matches operations #{names.join(', ')}"
+    end
+  end
+
+  def add_to_mapping(unique_matches)
+    unique_matches.each do |id, names|
+      unique_name = names.first
+      puts "direct mapping #{id} => #{unique_name}"
+      @id_name_mapping[id] = unique_name
+      remove_from_ambiguous_list(id, unique_name)
+      #print_ambiguous_list
+    end 
+  end
+
+  def resolve
+    while !(un = get_unique_matches).empty?
+      add_to_mapping(un)
+    end
+  end
+
+  def resolved?
+    @id_name_matches.empty?
+  end
+
+  def operation_map
+    @id_name_mapping
+  end
 end
 
 predictor = OpPredictor.new
@@ -231,8 +324,19 @@ else
   end
 end
 predictor.print_tests
-matching = predictor.matching_operations
-ambig = matching.count do |row, names|
+match_data = predictor.calculate_matches
+ambig = match_data[:test_matches].count do |row, names|
   names.size >= 3
 end
 puts "ambiguous (behave like 3 or more): #{ambig}"
+match_data[:id_name_matches].each do |id, names|
+  puts "id #{id} matches operations #{names.join(', ')}"
+end
+resolver = OperationResolver.new(match_data[:id_name_matches])
+resolver.resolve
+if resolver.resolved?
+  puts "All operations matched!"
+  predictor.apply_operations(resolver.operation_map)
+else
+  resolver.print_ambiguous_list
+end
