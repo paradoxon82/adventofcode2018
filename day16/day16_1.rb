@@ -64,9 +64,9 @@ class Operation
   def apply(before, op_input)
     raise "wrong input type" if before.class != Registerstate
 
-    val1 = @access1 == :immerdiate ? op_input[1] : before.get(op_input[1])
+    val1 = @access1 == :immediate ? op_input[1] : before.get(op_input[1])
     if @access2
-      val2 = @access2 == :immerdiate ? op_input[2] : before.get(op_input[2])
+      val2 = @access2 == :immediate ? op_input[2] : before.get(op_input[2])
     end
     
     res = nil
@@ -140,6 +140,7 @@ class OpTest
 
   def matches?(operation)
     res = operation.apply(@before, @input)
+    #puts "result #{res} vs predicted #{@after}"
     res == @after
   end
 
@@ -201,17 +202,19 @@ class OpPredictor
   end
 
   def matching_operations
-    matching_count = Hash.new { |hash, key| hash[key] = 0 }
+    matching_ops = Hash.new { |hash, key| hash[key] = [] }
     @tests.each_with_index do |op_test, row|
       puts "Test"
       puts op_test.print
       Operation.operations.each do |op|
+        #puts "operation '#{op.name}'"
         if op_test.matches?(op)
-          matching_count[row] += 1
+          matching_ops[row] << op.name
           puts "matches operation '#{op.name}'"
         end
       end
     end
+    matching_ops
   end 
 
 end
@@ -228,5 +231,8 @@ else
   end
 end
 predictor.print_tests
-predictor.matching_operations
-
+matching = predictor.matching_operations
+ambig = matching.count do |row, names|
+  names.size >= 3
+end
+puts "ambiguous (behave like 3 or more): #{ambig}"
