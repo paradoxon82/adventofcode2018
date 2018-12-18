@@ -42,7 +42,7 @@ class Registerstate
 end
 
 class Operation
-
+  attr_reader :name
   # access can be :immediate or :register
   def initialize(name, access1, access2, operator, op_type=:numeric)
     @name = name
@@ -64,9 +64,9 @@ class Operation
   def apply(before, op_input)
     raise "wrong input type" if before.class != Registerstate
 
-    val1 = access1 == :immerdiate ? op_input[1] : before.at(op_input[1])
-    if access2
-      val2 = access2 == :immerdiate ? op_input[2] : before.at(op_input[2])
+    val1 = @access1 == :immerdiate ? op_input[1] : before.get(op_input[1])
+    if @access2
+      val2 = @access2 == :immerdiate ? op_input[2] : before.get(op_input[2])
     end
     
     res = nil
@@ -82,6 +82,10 @@ class Operation
     end
 
     store_result(before, op_input, res)
+  end
+
+  def self.operations
+    @operations
   end
 
   def self.init_operations
@@ -109,15 +113,13 @@ class Operation
 end
 
 class OpMatcher
-  def initialize(before, after, op_input)
-    @before = before
-    @after = after
-    @input = op_input
+  def initialize(test)
+    @test = test
   end
 
   def matching_operations
-  end
 
+  end
 end
 
 class OpTest
@@ -136,9 +138,9 @@ class OpTest
     @after = after
   end
 
-  def matches(operation)
+  def matches?(operation)
     res = operation.apply(@before, @input)
-    res == after
+    res == @after
   end
 
   def print
@@ -198,10 +200,33 @@ class OpPredictor
     end
   end
 
+  def matching_operations
+    matching_count = Hash.new { |hash, key| hash[key] = 0 }
+    @tests.each_with_index do |op_test, row|
+      puts "Test"
+      puts op_test.print
+      Operation.operations.each do |op|
+        if op_test.matches?(op)
+          matching_count[row] += 1
+          puts "matches operation '#{op.name}'"
+        end
+      end
+    end
+  end 
+
 end
 
 predictor = OpPredictor.new
-File.open(ARGV[0]).each_line do |line|
-  predictor.add_line(line.strip)
+if (ARGV[0] && File.exists?(ARGV[0]))
+  File.open(ARGV[0]).each_line do |line|
+    predictor.add_line(line.strip)
+  end
+else
+  example = ['Before: [3, 2, 1, 1]', '[9 2 1 2]', 'After:  [3, 2, 2, 1]']
+  example.each do |line|
+    predictor.add_line(line)
+  end
 end
 predictor.print_tests
+predictor.matching_operations
+
