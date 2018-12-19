@@ -62,6 +62,11 @@ class Operation
   def store_result(before_state, op_input, value)
     after = before_state.clone
     after.set(op_input[2], value)
+    #puts "setting register #{op_input[2]} to #{value}, result #{after}"
+    # if op_input[2] == 0
+    #   puts "name #{name}, input #{op_input}, before #{before_state}, after #{after}"
+    #   puts "jump from line #{before_state.get(0)} to line #{after.get(0)}"
+    # end
     after
   end
 
@@ -134,11 +139,15 @@ class Instruction
     @input = input
   end
 
-  def apply(ip, state)
-    state.set(0, ip)
+  def apply(ip, state, ip_bind)
+    state.set(ip_bind, ip)
     new_state = @operation.apply(state, @input)
-    ip = new_state.get(0)
+    ip = new_state.get(ip_bind)
     return [ip, new_state]
+  end
+
+  def to_s
+    "#{@operation.name} #{@input.join(' ')}"
   end
 end
 
@@ -147,6 +156,7 @@ class OpPredictor
   def initialize
     @instructions = []
     @ip = nil
+    @ip_bind = nil
   end
 
   def match_line(line)
@@ -168,7 +178,7 @@ class OpPredictor
     if result[:type] == :instruction
       @instructions << result[:value]
     elsif result[:type] == :ip
-      @ip = result[:value]
+      @ip_bind = result[:value]
     end
   end
 
@@ -181,10 +191,12 @@ class OpPredictor
   end
 
   def apply_operations
+    @ip = 0
     state = Registerstate.new([0, 0, 0, 0, 0, 0])
     while (inst = instruction_at(@ip))
-      puts "ip: #{@ip}, state #{state}"
-      @ip, state = inst.apply(@ip, state)
+      #puts "ip: #{@ip}, state #{state}"
+      #puts inst
+      @ip, state = inst.apply(@ip, state, @ip_bind)
       @ip += 1
     end
     puts "ip: #{@ip}, final state #{state}"
