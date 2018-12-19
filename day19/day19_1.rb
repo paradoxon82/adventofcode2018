@@ -190,13 +190,21 @@ class OpPredictor
     end
   end
 
-  def apply_operations
+  def apply_operations(initial_state = nil)
     @ip = 0
-    state = Registerstate.new([0, 0, 0, 0, 0, 0])
+    state = nil
+    if initial_state
+      state = Registerstate.new(initial_state)
+    else
+      state = Registerstate.new([0, 0, 0, 0, 0, 0])
+    end
     while (inst = instruction_at(@ip))
-      #puts "ip: #{@ip}, state #{state}"
       #puts inst
+      before = state.get(0)
       @ip, state = inst.apply(@ip, state, @ip_bind)
+      if before != state.get(0)
+        puts "ip: #{@ip}, state #{state}"
+      end
       @ip += 1
     end
     puts "ip: #{@ip}, final state #{state}"
@@ -209,6 +217,10 @@ if (ARGV[0] && File.exists?(ARGV[0]))
   File.open(ARGV[0]).each_line do |line|
     predictor.add_line(line.strip)
   end
+  puts "part 1"
+  predictor.apply_operations
+  puts "part 2"
+  predictor.apply_operations([1, 0, 0, 0, 0, 0])
 else
   example = ['#ip 0',
     'seti 5 0 1',
@@ -221,5 +233,5 @@ else
   example.each do |line|
     predictor.add_line(line)
   end
+  predictor.apply_operations
 end
-predictor.apply_operations
