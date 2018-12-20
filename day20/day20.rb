@@ -85,13 +85,22 @@ class PathFollower
 
 end
 
-tests = [['^ENNWSWW(NEWS|)SSSEEN(WNSE|)EE(SWEN|)NNN$', 18],
-  ['^ESSWWN(E|NNENN(EESS(WNSE|)SSS|WWWSSSSE(SW|NNNE)))$', 23],
-  ['^WSSEESWWWNW(S|NENNEEEENN(ESSSSW(NWSW|SSEN)|WSWWN(E|WWS(E|SS))))$', 31]]
-
 follower = PathFollower.new
-tests.each do |path|
-  length = follower.longest_path(path[0])
-  puts "path #{path[0]}, length #{path[1]}"
-  puts "measures: #{length}"
+if (ARGV[0] && File.exists?(ARGV[0]))
+  File.open(ARGV[0]).each_line do |line|
+    length = follower.longest_path(line.strip)
+    puts "measures: #{length}"
+  end
+else
+  tests = [['^ENNWSWW(NEWS|)SSSEEN(WNSE|)EE(SWEN|)NNN$', 18],
+    ['^ESSWWN(E|NNENN(EESS(WNSE|)SSS|WWWSSSSE(SW|NNNE)))$', 23],
+    ['^WSSEESWWWNW(S|NENNEEEENN(ESSSSW(NWSW|SSEN)|WSWWN(E|WWS(E|SS))))$', 31]]
+
+  tests.each do |path|
+    length = follower.longest_path(path[0])
+    puts "path #{path[0]}, length #{path[1]}"
+    puts "measures: #{length}"
+  end
 end
+
+
