@@ -3,7 +3,8 @@
 require 'set'
 
 class PathNode
-  attr_accessor :parent
+  attr_accessor :parent, :children
+  attr_reader :steps
 
   def initialize(parent = nil)
     @parent = parent
@@ -24,18 +25,14 @@ class PathNode
     @steps.empty?
   end
 
-  def set_detour
-    @children.clear
-  end
-
-  def max_length
-    length = @steps.size
-    max_child = @children.map do |child|
-      child.max_length
-    end.max
-    length += max_child if max_child
-    length
-  end 
+  # def max_length
+  #   length = @steps.size
+  #   max_child = @children.map do |child|
+  #     child.max_length
+  #   end.max
+  #   length += max_child if max_child
+  #   length
+  # end 
 end
 
 class PathTree
@@ -50,12 +47,65 @@ class PathTree
   end
 end
 
+class Stepper
+
+  def initialize(start_node)
+    @start_node = start_node
+    # collects the shortest paths to all points on the map
+    @shortest_paths = {[0,0] => 0}
+  end
+
+  def calculate_shortest_paths
+    follow_node(@start_node, [0,0], 0)
+  end
+
+  def count_step(step, position, length)
+    case step
+    when 'N'
+      position[1] -= 1
+    when 'W'
+      position[0] -= 1
+    when 'S'
+      position[1] += 1
+    when 'E'
+      position[0] += 1
+    else
+      raise "Unknown step #{step}"
+    end
+    # no path yet or shorter path found
+    if !@shortest_paths[position] || length < @shortest_paths[position] 
+      @shortest_paths[position] = length  
+      puts "position #{position} is reachable in #{length} steps"
+    end
+
+  end
+
+  def follow_node(node, position, length)
+    node.steps.each do |step|
+      length += 1
+      count_step(step, position, length)
+    end
+    node.children.each do |child|
+      raise "loop found" if node == child 
+      follow_node(child, position.clone, length)
+    end
+  end
+
+  def longest_shortest_path
+    furthest_pos, path_length = @shortest_paths.max_by do |pos, lenght| 
+      lenght
+    end
+
+    path_length
+  end
+
+end
+
 class PathFollower
 
-  def longest_path(steps)
+  def register_steps(steps)
 
-    tree = PathTree.new
-    current_node = tree.start
+    @start_node = current_node = PathNode.new
 
     steps[1..-2].chars.each do |step|
       if 'WNES'.include?(step)
@@ -65,12 +115,12 @@ class PathFollower
         current_node.add_child(node)
         current_node = node
       elsif step == ')'
-        if current_node.empty?
-          current_node = current_node.parent
-          current_node.set_detour
-        else
-          current_node = current_node.parent
+        # all nodes in the alternatives, have the new node as a follow node
+        new_node = PathNode.new
+        current_node.parent.children.each do |precursor|
+          precursor.add_child(new_node)
         end
+        current_node = new_node
       elsif step == '|'
         par = current_node.parent  
         current_node = PathNode.new
@@ -80,15 +130,22 @@ class PathFollower
       end
     end
 
-    tree.max_length
+    
+  end
+
+  def longest_shortest_path
+    stepper = Stepper.new(@start_node)
+    stepper.calculate_shortest_paths
+    stepper.longest_shortest_path
   end
 
 end
 
-follower = PathFollower.new
 if (ARGV[0] && File.exists?(ARGV[0]))
   File.open(ARGV[0]).each_line do |line|
-    length = follower.longest_path(line.strip)
+    follower = PathFollower.new
+    follower.register_steps(line.strip)
+    length = follower.longest_shortest_path
     puts "measures: #{length}"
   end
 else
@@ -97,7 +154,10 @@ else
     ['^WSSEESWWWNW(S|NENNEEEENN(ESSSSW(NWSW|SSEN)|WSWWN(E|WWS(E|SS))))$', 31]]
 
   tests.each do |path|
-    length = follower.longest_path(path[0])
+    follower = PathFollower.new
+    follower.register_steps(path[0])
+    length = follower.longest_shortest_path
+
     puts "path #{path[0]}, length #{path[1]}"
     puts "measures: #{length}"
   end
