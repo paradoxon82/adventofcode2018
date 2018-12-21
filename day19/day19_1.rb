@@ -2,6 +2,8 @@
 
 require 'set'
 
+$verbose = true
+
 class Registerstate
   attr_reader :state
   @size = 6
@@ -200,10 +202,10 @@ class OpPredictor
     end
     while (inst = instruction_at(@ip))
       #puts inst
-      before = state.get(0)
+      before = state.clone
       @ip, state = inst.apply(@ip, state, @ip_bind)
-      if before != state.get(0)
-        puts "ip: #{@ip}, state #{state}"
+      if before.get(0) != state.get(0)
+        puts "ip: #{@ip}, state #{state} from #{before}" if $verbose
       end
       @ip += 1
     end
@@ -218,7 +220,7 @@ if (ARGV[0] && File.exists?(ARGV[0]))
     predictor.add_line(line.strip)
   end
   puts "part 1"
-  predictor.apply_operations
+  #predictor.apply_operations
   puts "part 2"
   predictor.apply_operations([1, 0, 0, 0, 0, 0])
 else
