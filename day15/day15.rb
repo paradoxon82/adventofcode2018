@@ -27,15 +27,23 @@ class Unit < Wall
 end
 
 class Elf < Unit
-  def char
-    'E'
+  attr_reader :char, :type
+
+  def initialize
+    @char = 'E'
+    @type = :elf
   end
+
 end
 
 class Goblin < Unit
-  def char
-    'G'
+  attr_reader :char, :type
+
+  def initialize
+    @char = 'G'
+    @type = :goblin
   end
+
 end
 
 class Field
@@ -45,13 +53,15 @@ class Field
     @units = {}
   end
 
-  def add_unit(unit, position)
+  def add_unit(unit, x, y)
+    position = position(x, y)
     raise "position taken: #{position}" if unit_at(position)
     puts "place unit #{unit.char} at #{position}" if $verbose
     @units[position] = unit
   end
 
-  def add_wall(unit, position)
+  def add_wall(unit, x, y)
+    position = position(x, y)
     raise "position taken: #{position}" if unit_at(position)
     puts "place wall at #{position}" if $verbose
     @walls[position] = unit
@@ -69,7 +79,12 @@ class Field
     @walls.member?(position) || @units.member?(position)
   end
 
-  def thing_at(position)
+  def position(x, y)
+    [y, x]
+  end
+
+  def thing_at(x, y)
+    position = position(x, y)
     wall_at(position) || unit_at(position)
   end
 
@@ -87,7 +102,7 @@ class Field
     (0..max_y).each do |y|
       line = []
       (0..max_x).each do |x|
-        thing = thing_at([x, y])
+        thing = thing_at(x, y)
         if thing
           line << thing.char
         else
@@ -98,8 +113,33 @@ class Field
     end
   end
 
-  def next_step
+  def goblins
+    @units.filter {|unit| unit.type == :goblin}
+  end
 
+  def elfs
+    @units.filter {|unit| unit.type == :elf}
+  end
+
+  def units_by_order
+    @units.sort_by do |position, unit|
+      position
+    end
+  end
+
+
+  def first_enemy_in_range
+
+  end
+
+  def unit_free?(position)
+
+  end
+
+  def next_step
+    units_by_order.each do |position, unit|
+
+    end
   end
 
 end
@@ -117,11 +157,11 @@ class FieldParser
   end
 
   def add_unit(unit, x)
-    field.add_unit(unit, [x, current_y])
+    field.add_unit(unit, x, current_y)
   end
 
   def add_position(unit, x)
-    field.add_wall(unit, [x, current_y])
+    field.add_wall(unit, x, current_y)
   end
 
   def register_line(line)
