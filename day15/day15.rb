@@ -83,9 +83,13 @@ class Field
     [y, x]
   end
 
+  def thing_at_pos(position)
+    wall_at(position) || unit_at(position)
+  end
+
   def thing_at(x, y)
     position = position(x, y)
-    wall_at(position) || unit_at(position)
+    thing_at_pos(position)
   end
 
   def max_x
@@ -113,33 +117,67 @@ class Field
     end
   end
 
-  def goblins
-    @units.filter {|unit| unit.type == :goblin}
-  end
-
-  def elfs
-    @units.filter {|unit| unit.type == :elf}
-  end
-
   def units_by_order
     @units.sort_by do |position, unit|
       position
     end
   end
 
+  # def goblins
+  #   units_by_order.filter {|position, unit| unit.type == :goblin}
+  # end
 
-  def first_enemy_in_range
+  def units_of_type(type)
+    units_by_order.filter {|position, unit| unit.type == type}
+  end
 
+  def first_enemy_in_range(position, unit)
+    enemies
+    if unit.type == :elf
+      enemies = units_of_type(:goblin)
+    elsif unit.type == :goblin
+      enemies = units_of_type(:elf)
+    else
+      raise "unknown type #{unit.type}"
+    end
+
+    free_enemies = enemies.filter { |pos, unit| unit_free?(pos) }
+    nearest_enemies = free_enemies.sort_by { |enemy_pos, unit| distance(position, enemy_pos) }
+    nearest_enemies_sorted = nearest_enemies.sort_by { |enemy_pos, unit| enemy_pos }
+
+    nearest_enemies_sorted.first
+  end
+
+  def pos_step(pos, step)
+    [pos.first + step.first, pos.last + step.last]
+  end
+
+  def distance(from, to)
+    # TODO implement
   end
 
   def unit_free?(position)
-
+    # any adjacent free space
+    [[-1, 0], [1, 0], [0, -1], [0, 1]].any? do |move|
+      new_pos = pos_step(position, move)
+      thing_at_pos(new_pos).nil?
+    end
   end
 
   def next_step
+    any_action = false
     units_by_order.each do |position, unit|
-
+      enemy = adjacent_enemy(position, unit)
+      if enemy
+        unit.fight_with(enemy)
+      else
+        enemy = first_enemy_in_range(position, unit)
+      end
+      unless enemy
+        next
+      end
     end
+    return any_action
   end
 
 end
