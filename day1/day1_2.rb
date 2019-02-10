@@ -12,10 +12,14 @@ frequencies[0] = 1
 
 sum = 0
 found_frequency = nil
+loop = 0
 while true
+  puts "loop #{loop}"
+  loop += 1
   changes.each do |change|
     sum += change
     frequencies[sum] += 1
+#    puts "#{sum}"
     if frequencies[sum] > 1
       found_frequency = sum
       break
